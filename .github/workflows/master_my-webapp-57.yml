@@ -1,23 +1,22 @@
 on:
  workflow_dispatch:
       
-name: Main Workflow
 jobs:
-  sonarcloud:
+  SonarScanner:
     runs-on: ubuntu-latest
+    name: Sonar Scanner
     steps:
-    - uses: actions/checkout@v2
-      with:
-        # Disabling shallow clone is recommended for improving relevancy of reporting
-        fetch-depth: 0
-    - name: SonarCloud Scan
-      uses: sonarsource/sonarcloud-github-action@master
-#       with:
-#         projectBaseDir: .
-#         args: >
-#           -Dsonar.projectKey=my-project
-      env:
-        githubToken: ${{ secrets.GITHUB_TOKEN }}
-        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        projectKey: "my-project"
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Install dependencies
+        run: yarn install --production=false
+      - name: Scan code
+        uses: vtex/action-sonarqube@main
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }} # https://docs.github.com/en/actions/reference/authentication-in-a-workflow#about-the-github_token-secret
+          host: ${{ secrets.SQHost }} # Variable set in the Github Secrets
+          token: ${{ secrets.SQToken }} # Variable set in the Github Secrets
+          projectKey: "my-project"
+          projectName: "my-project"
