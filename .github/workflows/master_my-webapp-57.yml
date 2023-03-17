@@ -1,22 +1,36 @@
 on:
- workflow_dispatch:
-      
+  # Trigger analysis when pushing in master or pull requests, and when creating
+  # a pull request. 
+  workflow_dispatch:
+  
+name: Main Workflow
 jobs:
-  SonarScanner:
+  sonarqube:
     runs-on: ubuntu-latest
-    name: Sonar Scanner
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - name: Install dependencies
-        run: yarn install --production=false
-      - name: Scan code
-        uses: vtex/action-sonarqube@main
-        with:
-          githubToken: ${{ secrets.GITHUB_TOKEN }} # https://docs.github.com/en/actions/reference/authentication-in-a-workflow#about-the-github_token-secret
-          host: ${{ secrets.SQHost }} # Variable set in the Github Secrets
-          token: ${{ secrets.SQToken }} # Variable set in the Github Secrets
-          projectKey: "my-project"
-          projectName: "my-project"
+    - uses: actions/checkout@v2
+      with:
+        # Disabling shallow clone is recommended for improving relevancy of reporting.
+        fetch-depth: 0
+
+    # Triggering SonarQube analysis as results of it are required by Quality Gate check.
+    - name: SonarQube Scan
+      uses: sonarsource/sonarqube-scan-action@master
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+    # Check the Quality Gate status.
+    - name: SonarQube Quality Gate check
+      id: sonarqube-quality-gate-check
+      uses: sonarsource/sonarqube-quality-gate-action@master
+      # Force to fail step after specific time.
+      timeout-minutes: 5
+      env:
+       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+       SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }} #OPTIONAL
+
+    # Optionally you can use the output from the Quality Gate in another step.
+    # The possible outputs of the `quality-gate-status` variable are `PASSED`, `WARN` or `FAILED`.
+    - name: "Example show SonarQube Quality Gate Status value"
+      run: echo "The Quality Gate status is ${{ steps.sonarqube-quality-gate-check.outputs.quality-gate-status }}"
